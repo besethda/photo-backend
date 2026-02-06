@@ -91,6 +91,21 @@ app.get('/api/groups', async (c) => {
   return c.json(db.groups)
 })
 
+app.get('api/group-category', async (c)=> {
+  const db = await getDB(c)
+  let userGroup = c.req.query('id')
+  if (userGroup) {
+    let desiredGroup = db.groups.find(q => q.id === Number(userGroup))
+    if(desiredGroup){
+      return c.json(desiredGroup.category)
+    } else {
+      return c.json({ message: 'Unable to find Category.' })
+    }
+  } else {
+    return c.json({ message: 'No query object!' })
+  }
+})
+
 // app.get("/api/home-featured", async (c) => {
 //   const db = await getDB()
 //   let featured =
