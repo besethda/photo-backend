@@ -74,8 +74,9 @@ app.get('/api/categories', async (c) => {
   const db = await getDB(c)
 
   let categories = db.groups.map(g => { return g.category })
-  let filteredCategories = categories.filter(e => e !== 'System')
-  return c.json(filteredCategories)
+  let filteredCategories = categories.filter(e => e !== 'system')
+  let nonRepeatedCategories = [...new Set(filteredCategories)]
+  return c.json(nonRepeatedCategories)
 })
 
 //returns a list of all the groups within a category with their photos
@@ -120,7 +121,23 @@ app.get('api/group-category', async (c)=> {
 
 //Frontend Website API Calls//
 
-app.post('api/add-general', async (c)=> {
+app.get('/api/group-name', async (c) => {
+  const db = await getDB(c)
+  let groupId = c.req.query('id')
+
+  if (groupId) {
+    let desiredGroup = db.groups.find(q => q.id === Number(groupId))
+    if(desiredGroup){
+      return c.json(desiredGroup.name)
+    } else {
+      return c.json({ message: 'Unable to find group name.' })
+    }
+  } else {
+    return c.json({ message: 'No query object!' })
+  }
+})
+
+app.post('/api/add-general', async (c)=> {
   const db = await getDB(c)
   let generalContent = {
     "fontfamily": "'Arial', serif",
@@ -154,6 +171,34 @@ app.post('/api/update-index', async (c) => {
   await c.env.PHOTO_DB.put('index.json', JSON.stringify(db))
 
   return c.json({ message: "Update Successful", updatedSettings: db.general })
+})
+
+app.post('/api/change-category', async (c) => {
+  const db = await getDB(c)
+  const body = await c.req.json()
+
+  let selectedGroup = db.groups.find(k => body.groupID === k.id)
+  if(selectedGroup){
+    selectedGroup.category = body.categoryName
+    await c.env.PHOTO_DB.put('index_json', JSON.stringify(db))
+    return c.json({ message: "Update Successful", updatedSettings: `New category chosen: ${body.categoryName}` })
+  } else {
+    return c.json({ message: "Update Failed", updatedSettings: `No group was found to update` })
+  }
+})
+
+app.post('/api/change-group-name', async (c) => {
+  const db = await getDB(c)
+  const body = await c.req.json()
+
+  let selectedGroup = db.groups.find(k => body.groupID === k.id)
+  if(selectedGroup){
+    selectedGroup.name = body.groupName
+    await c.env.PHOTO_DB.put('index_json', JSON.stringify(db))
+    return c.json({ message: "Name Update Successful", updatedSettings: `Group name changed to ${body.groupName}.` })
+  } else {
+    return c.json({ message: "Name Update Failed", updatedSettings: `No group was found to update.` })
+  }
 })
 
 //Add a new group
